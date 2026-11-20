@@ -68,9 +68,27 @@ function Servidores() {
 function Usuarios() {
   const [q, setQ] = useState('')
   const [fil, setFil] = useState('Todos')
-  const l = usuariosIni.filter((u) => (fil === 'Todos' || u.st === fil || (fil === 'Teste Grátis' && u.st === fil)) && (u.nome + u.email).toLowerCase().includes(q.toLowerCase()))
+  const [lista, setLista] = useState(usuariosIni)
+  const [n, setN] = useState({ nome: '', email: '', st: 'Ativos' })
+  const criar = () => {
+    if (!n.nome.trim() || !n.email.includes('@')) return toast.error('Informe nome e e-mail válidos')
+    if (lista.some((u) => u.email === n.email)) return toast.error('E-mail já cadastrado')
+    setLista([n, ...lista])
+    setN({ nome: '', email: '', st: 'Ativos' })
+    toast.success('Cliente criado')
+  }
+  const l = lista.filter((u) => (fil === 'Todos' || u.st === fil || (fil === 'Teste Grátis' && u.st === fil)) && (u.nome + u.email).toLowerCase().includes(q.toLowerCase()))
   return (
     <div className="space-y-3">
+      <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
+        <h2 className="font-bold">Novo cliente</h2>
+        <Input placeholder="Nome" value={n.nome} onChange={(e) => setN({ ...n, nome: e.target.value })} className="border-white/10" />
+        <Input placeholder="E-mail" value={n.email} onChange={(e) => setN({ ...n, email: e.target.value })} className="border-white/10" />
+        <select value={n.st} onChange={(e) => setN({ ...n, st: e.target.value })} className="w-full rounded-md border border-white/10 bg-zinc-900 p-2 text-sm">
+          {['Teste Grátis', 'Ativos', 'Expirados'].map((x) => <option key={x}>{x}</option>)}
+        </select>
+        <Button onClick={criar}>➕ Criar cliente</Button>
+      </div>
       <Input placeholder="Buscar por nome ou e-mail" value={q} onChange={(e) => setQ(e.target.value)} className="border-white/10" />
       <div className="flex flex-wrap gap-2">
         {['Todos', 'Teste Grátis', 'Ativos', 'Expirados'].map((x) => (
