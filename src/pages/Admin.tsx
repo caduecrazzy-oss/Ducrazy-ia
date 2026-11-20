@@ -3,14 +3,10 @@ import { acesso } from '@/lib/acesso'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Clientes, Relatorio, iniciais, type Cli } from '@/pages/Clientes'
 
 type Srv = { nome: string; dns: string; ativo: boolean }
 const abas = ['Visão Geral', 'Servidores', 'Conteúdo (IA)', 'Usuários', 'Relatórios', 'Comunicação']
-const usuariosIni = [
-  { nome: 'Maria', email: 'maria@email.com', st: 'Teste Grátis' },
-  { nome: 'João', email: 'joao@email.com', st: 'Ativos' },
-  { nome: 'Ana', email: 'ana@email.com', st: 'Expirados' },
-]
 
 function Servidores() {
   const [lista, setLista] = useState<Srv[]>([
@@ -127,49 +123,12 @@ function TesteGratis() {
   )
 }
 
-function Usuarios() {
-  const [q, setQ] = useState('')
-  const [fil, setFil] = useState('Todos')
-  const [lista, setLista] = useState(usuariosIni)
-  const [n, setN] = useState({ nome: '', email: '', st: 'Ativos' })
-  const criar = () => {
-    if (!n.nome.trim() || !n.email.includes('@')) return toast.error('Informe nome e e-mail válidos')
-    if (lista.some((u) => u.email === n.email)) return toast.error('E-mail já cadastrado')
-    setLista([n, ...lista])
-    setN({ nome: '', email: '', st: 'Ativos' })
-    toast.success('Cliente criado')
-  }
-  const l = lista.filter((u) => (fil === 'Todos' || u.st === fil || (fil === 'Teste Grátis' && u.st === fil)) && (u.nome + u.email).toLowerCase().includes(q.toLowerCase()))
+function Usuarios({ l, setL }: { l: Cli[]; setL: (v: Cli[]) => void }) {
   return (
     <div className="space-y-3">
       <TesteGratis />
       <Pedidos />
-      <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
-        <h2 className="font-bold">Novo cliente</h2>
-        <Input placeholder="Nome" value={n.nome} onChange={(e) => setN({ ...n, nome: e.target.value })} className="border-white/10" />
-        <Input placeholder="E-mail" value={n.email} onChange={(e) => setN({ ...n, email: e.target.value })} className="border-white/10" />
-        <select value={n.st} onChange={(e) => setN({ ...n, st: e.target.value })} className="w-full rounded-md border border-white/10 bg-zinc-900 p-2 text-sm">
-          {['Teste Grátis', 'Ativos', 'Expirados'].map((x) => <option key={x}>{x}</option>)}
-        </select>
-        <Button onClick={criar}>➕ Criar cliente</Button>
-      </div>
-      <Input placeholder="Buscar por nome ou e-mail" value={q} onChange={(e) => setQ(e.target.value)} className="border-white/10" />
-      <div className="flex flex-wrap gap-2">
-        {['Todos', 'Teste Grátis', 'Ativos', 'Expirados'].map((x) => (
-          <button key={x} onClick={() => setFil(x)} className={`rounded-full px-3 py-1 text-sm ${fil === x ? 'bg-white text-black' : 'bg-white/10'}`}>{x}</button>
-        ))}
-        <Button size="sm" variant="secondary" onClick={() => toast.success('Lista exportada')}>📤 Exportar</Button>
-      </div>
-      {l.map((u) => (
-        <div key={u.email} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/5 p-3 text-sm">
-          <span>{u.nome} · {u.email} · {u.st}</span>
-          <span className="space-x-2">
-            <button onClick={() => toast('Editar plano')}>🔧</button>
-            <button onClick={() => toast.success('Teste prorrogado')}>⏳</button>
-            <button onClick={() => toast.success('Usuário bloqueado')}>🚫</button>
-          </span>
-        </div>
-      ))}
+      <Clientes l={l} setL={setL} />
     </div>
   )
 }
@@ -210,6 +169,7 @@ function Geral({ ir }: { ir: () => void }) {
 export default function Admin() {
   const [aba, setAba] = useState(0)
   const [msg, setMsg] = useState('')
+  const [clis, setClis] = useState<Cli[]>(iniciais)
   const acao = (t: string) => <Button variant="secondary" key={t} onClick={() => toast.success(t + ' iniciado')}>{t}</Button>
   return (
     <div className="min-h-svh bg-zinc-950 px-4 py-6 text-zinc-50">
@@ -226,8 +186,8 @@ export default function Admin() {
             <div className="flex flex-wrap gap-2">{['🔄 Verificar agora', '➕ Atualizar apenas novos', '🔗 Reparar links', '⏰ Atualização automática'].map(acao)}</div>
           </div>
         )}
-        {aba === 3 && <Usuarios />}
-        {aba === 4 && <p className="text-sm text-zinc-300">Acessos hoje: 342 · Online agora: 57 · Pico: 20h–23h<br />Dispositivos: celular 55% · TV 30% · computador 15%<br />⚠️ Alerta: Daily3 com resposta lenta</p>}
+        {aba === 3 && <Usuarios l={clis} setL={setClis} />}
+        {aba === 4 && <Relatorio l={clis} />}
         {aba === 5 && (
           <div className="space-y-3">
             <Input placeholder="Mensagem" value={msg} onChange={(e) => setMsg(e.target.value)} className="border-white/10" />
