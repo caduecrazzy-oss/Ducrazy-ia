@@ -1,0 +1,12 @@
+{
+  "name": "Du Crazy Play",
+  "short_name": "Du Crazy",
+  "description": "TV ao vivo, filmes e séries",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101030",
+  "theme_color": "#8050ff",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
