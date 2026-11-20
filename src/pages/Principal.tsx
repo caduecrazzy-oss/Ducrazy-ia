@@ -21,6 +21,9 @@ export default function Principal() {
   const [busca, setBusca] = useState('')
   const [player, setPlayer] = useState<Item | null>(null)
   const [carregando, setCarregando] = useState(false)
+  const [cat, setCat] = useState('')
+  const [qual, setQual] = useState('Auto')
+  const [leg, setLeg] = useState('Desligada')
   const [favs, setFavs] = useState<string[]>(() => JSON.parse(localStorage.getItem('dc_favs') ?? '[]'))
 
   useEffect(() => { if (!dados) nav('/entrar') }, [dados, nav])
@@ -29,7 +32,8 @@ export default function Principal() {
   if (!dados) return null
   const todos = [...dados.tv, ...dados.filmes, ...dados.series]
   const base = aba === 'fav' ? todos.filter((i) => favs.includes(i.id)) : aba === 'tv' || aba === 'filmes' || aba === 'series' ? dados[aba] : []
-  const lista = base.filter((i) => i.nome.toLowerCase().includes(busca.toLowerCase())).slice(0, 300)
+  const cats = Array.from(new Set(base.map((i) => i.cat).filter(Boolean))) as string[]
+  const lista = base.filter((i) => (!cat || i.cat === cat) && i.nome.toLowerCase().includes(busca.toLowerCase())).slice(0, 300)
   const fav = (id: string) => setFavs((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]))
 
   const atualizar = async () => {
@@ -60,6 +64,13 @@ export default function Principal() {
       </header>
       <main className="mx-auto max-w-6xl px-4 py-4">
         {carregando && <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#8050ff]" /></div>}
+        {aba !== 'cfg' && cats.length > 0 && (
+          <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+            {['', ...cats.slice(0, 40)].map((c) => (
+              <button key={c || 'todas'} onClick={() => setCat(c)} className={`shrink-0 rounded-full px-3 py-1 text-xs ${cat === c ? 'bg-[#a070ff] text-white' : 'bg-white/10 text-zinc-300'}`}>{c || 'Todas'}</button>
+            ))}
+          </div>
+        )}
         {aba === 'cfg' ? (
           <div className="mx-auto max-w-sm space-y-3">
             <Button onClick={atualizar} disabled={carregando} className="w-full bg-[#8050ff] hover:bg-[#6a3de8]"><RefreshCw /> Atualizar lista</Button>
@@ -85,7 +96,7 @@ export default function Principal() {
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-white/10 bg-zinc-950">
         {abas.map((a) => (
-          <button key={a.id} onClick={() => setAba(a.id)} className={`flex flex-1 flex-col items-center py-2 text-[11px] ${aba === a.id ? 'text-[#8050ff]' : 'text-zinc-400'}`}>
+          <button key={a.id} onClick={() => { setAba(a.id); setCat('') }} className={`flex flex-1 flex-col items-center py-2 text-[11px] ${aba === a.id ? 'text-[#8050ff]' : 'text-zinc-400'}`}>
             <span className="text-lg">{a.ic}</span>{a.nome}
           </button>
         ))}
@@ -96,7 +107,12 @@ export default function Principal() {
             <span className="truncate font-semibold">{player.nome}</span>
             <button aria-label="Fechar" onClick={() => setPlayer(null)}><X /></button>
           </div>
-          <video src={player.url} controls autoPlay playsInline className="min-h-0 flex-1 bg-black" onError={() => toast.error('Não foi possível reproduzir')} />
+          <video src={player.url} controls autoPlay playsInline className="min-h-0 flex-1 bg-black" onError={() => toast.error('Este canal está temporariamente indisponível.')} />
+          <div className="flex flex-wrap items-center gap-4 p-3 text-sm text-zinc-300">
+            <label>Qualidade: <select value={qual} onChange={(e) => { setQual(e.target.value); toast.info('Qualidade: ' + e.target.value) }} className="rounded bg-zinc-800 px-2 py-1">{['Auto', '360p', '720p', '1080p'].map((q) => <option key={q}>{q}</option>)}</select></label>
+            <label>Legenda: <select value={leg} onChange={(e) => setLeg(e.target.value)} className="rounded bg-zinc-800 px-2 py-1">{['Desligada', 'Disponível'].map((q) => <option key={q}>{q}</option>)}</select></label>
+            <button onClick={() => setPlayer(null)} className="ml-auto text-[#a070ff]">↺ Voltar para lista</button>
+          </div>
         </div>
       )}
     </div>
