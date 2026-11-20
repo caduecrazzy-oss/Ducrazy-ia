@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { acesso } from '@/lib/acesso'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -65,6 +66,40 @@ function Servidores() {
   )
 }
 
+type Cli = { email: string; status: string }
+function Pedidos() {
+  const [cl, setCl] = useState<Cli[]>([])
+  const admin = sessionStorage.getItem('dc_admin') || ''
+  const carregar = useCallback(() => {
+    acesso<{ clientes: Cli[] }>({ acao: 'listar', admin }).then((r) => setCl(r.clientes)).catch((e) => toast.error(e.message))
+  }, [admin])
+  useEffect(() => { carregar() }, [carregar])
+  const mudar = async (email: string, status: string) => {
+    try {
+      await acesso({ acao: 'status', admin, email, status })
+      toast.success('Atualizado')
+      carregar()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro')
+    }
+  }
+  return (
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
+      <h2 className="font-bold">Acessos por Gmail</h2>
+      {cl.length === 0 && <p className="text-sm text-zinc-400">Nenhum cadastro ainda.</p>}
+      {cl.map((c) => (
+        <div key={c.email} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/5 p-3 text-sm">
+          <span>{c.email} · {c.status}</span>
+          <span className="space-x-2">
+            <Button size="sm" onClick={() => mudar(c.email, 'aprovado')}>✅ Aprovar</Button>
+            <Button size="sm" variant="secondary" onClick={() => mudar(c.email, 'bloqueado')}>🚫 Bloquear</Button>
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Usuarios() {
   const [q, setQ] = useState('')
   const [fil, setFil] = useState('Todos')
@@ -80,6 +115,7 @@ function Usuarios() {
   const l = lista.filter((u) => (fil === 'Todos' || u.st === fil || (fil === 'Teste Grátis' && u.st === fil)) && (u.nome + u.email).toLowerCase().includes(q.toLowerCase()))
   return (
     <div className="space-y-3">
+      <Pedidos />
       <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
         <h2 className="font-bold">Novo cliente</h2>
         <Input placeholder="Nome" value={n.nome} onChange={(e) => setN({ ...n, nome: e.target.value })} className="border-white/10" />
