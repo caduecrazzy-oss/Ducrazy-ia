@@ -1,4 +1,4 @@
-export const PROXY = 'https://lnshksoszkiifrqzjmkt.supabase.co/functions/v1/proxy-stream'
+export const PROXY = 'https://pnpdsputyxtmopmdnsgo.supabase.co/functions/v1/proxy-stream'
 
 export type Item = { id: string; nome: string; url: string; img?: string; cat?: string }
 export type Dados = { tv: Item[]; filmes: Item[]; series: Item[] }
