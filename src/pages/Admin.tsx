@@ -96,37 +96,9 @@ function Pedidos() {
   )
 }
 
-function TesteGratis() {
-  const [t, setT] = useState<{ usuario: string; senha: string; expira_em: string } | null>(null)
-  const admin = sessionStorage.getItem('dc_admin') || ''
-  const gerar = async () => {
-    try {
-      setT(await acesso<{ usuario: string; senha: string; expira_em: string }>({ acao: 'criar', admin }, 'teste'))
-      toast.success('Teste criado')
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro')
-    }
-  }
-  return (
-    <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
-      <h2 className="font-bold">Teste grátis (3 horas)</h2>
-      <Button onClick={gerar}>🎁 Gerar usuário aleatório</Button>
-      {t && (
-        <div className="rounded-lg bg-white/10 p-3 text-sm">
-          <p>Usuário: <b>{t.usuario}</b></p>
-          <p>Senha: <b>{t.senha}</b></p>
-          <p>Expira: {new Date(t.expira_em).toLocaleString('pt-BR')}</p>
-          <Button size="sm" variant="secondary" className="mt-2" onClick={() => { navigator.clipboard?.writeText(`Usuário: ${t.usuario}\nSenha: ${t.senha}`); toast.success('Copiado') }}>Copiar</Button>
-        </div>
-      )}
-    </div>
-  )
-}
-
 function Usuarios({ l, setL }: { l: Cli[]; setL: (v: Cli[]) => void }) {
   return (
     <div className="space-y-3">
-      <TesteGratis />
       <Pedidos />
       <Clientes l={l} setL={setL} />
     </div>
