@@ -3,9 +3,10 @@ import { acesso } from '@/lib/acesso'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { buscar } from '@/lib/iptv'
 import { Clientes, Relatorio, iniciais, type Cli } from '@/pages/Clientes'
 
-type Srv = { nome: string; dns: string; ativo: boolean }
+type Srv = { nome: string; dns: string; ativo: boolean; user?: string; senha?: string; info?: string; erro?: boolean }
 const abas = ['Visão Geral', 'Servidores', 'Conteúdo (IA)', 'Usuários', 'Relatórios', 'Comunicação']
 
 function Servidores() {
@@ -16,11 +17,28 @@ function Servidores() {
   ])
   const [f, setF] = useState({ nome: '', dns: '', user: '', senha: '' })
   const [ativo, setAtivo] = useState(true)
+  const [busy, setBusy] = useState('')
+  const carregar = async (s: Srv) => {
+    if (!s.user || !s.senha) return toast.error('Servidor sem usuário/senha salvos')
+    setBusy(s.nome)
+    try {
+      const d = await buscar({ url: s.dns, usuario: s.user, senha: s.senha })
+      const info = `${d.tv.length} canais · ${d.filmes.length} filmes · ${d.series.length} séries`
+      setLista((l) => l.map((x) => (x.nome === s.nome ? { ...x, info, erro: false } : x)))
+      toast.success(`${s.nome}: ${info}`)
+    } catch (e) {
+      setLista((l) => l.map((x) => (x.nome === s.nome ? { ...x, info: 'Falha ao conectar', erro: true } : x)))
+      toast.error(e instanceof Error ? e.message : 'Erro ao conectar')
+    } finally {
+      setBusy('')
+    }
+  }
   const salvar = () => {
     if (!f.nome || !f.dns || !f.user || !f.senha) return toast.error('Preencha todos os campos')
-    setLista([...lista, { nome: f.nome, dns: f.dns, ativo }])
+    const s: Srv = { nome: f.nome, dns: f.dns, ativo, user: f.user, senha: f.senha }
+    setLista([...lista, s])
     setF({ nome: '', dns: '', user: '', senha: '' })
-    toast.success('Servidor salvo (simulação de carregamento)')
+    if (ativo) void carregar(s)
   }
   const campo = (k: keyof typeof f, ph: string, type = 'text') => (
     <Input type={type} placeholder={ph} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="border-white/10" />
@@ -48,10 +66,10 @@ function Servidores() {
         <tbody>
           {lista.map((s) => (
             <tr key={s.nome} className="border-t border-white/10">
-              <td className="py-2">{s.nome}</td><td>{s.dns}</td><td>{s.ativo ? '🟢 Online' : '⚪ Desativado'}</td>
+              <td className="py-2">{s.nome}</td><td>{s.dns}</td><td>{!s.ativo ? '⚪ Desativado' : s.erro ? '🔴 Falha' : '🟢 Online'}{s.info && <div className="text-xs text-zinc-400">{busy === s.nome ? 'Carregando…' : s.info}</div>}</td>
               <td className="space-x-2">
                 <button onClick={() => toast('Edição em breve')}>✏️</button>
-                <button onClick={() => toast.success('Recarregado')}>🔄</button>
+                <button disabled={busy === s.nome} onClick={() => carregar(s)}>🔄</button>
                 <button onClick={() => setLista(lista.filter((x) => x !== s))}>🗑️</button>
               </td>
             </tr>
