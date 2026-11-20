@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 type Srv = { nome: string; dns: string; ativo: boolean }
-const abas = ['Servidores', 'Conteúdo (IA)', 'Usuários', 'Relatórios', 'Comunicação']
+const abas = ['Visão Geral', 'Servidores', 'Conteúdo (IA)', 'Usuários', 'Relatórios', 'Comunicação']
 const usuariosIni = [
   { nome: 'Maria', email: 'maria@email.com', st: 'Teste Grátis' },
   { nome: 'João', email: 'joao@email.com', st: 'Ativos' },
@@ -174,6 +174,39 @@ function Usuarios() {
   )
 }
 
+function Geral({ ir }: { ir: () => void }) {
+  const cards = [['👥', '1.240', 'Usuários'], ['📡', '450', 'Canais'], ['🎬', '3.200', 'Filmes'], ['🎭', '286', 'Séries']]
+  const srv = [['Aura Top', 'dgaura.top'], ['Renovai', 'renovai.sbs'], ['Daily3', 'daily3.news']]
+  return (
+    <div className="space-y-4">
+      <h2 className="font-bold">📊 Visão geral — hoje</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {cards.map(([i, v, l]) => (
+          <div key={l} className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+            <div className="text-xl font-bold">{i} {v}</div><div className="text-xs text-zinc-400">{l}</div>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="font-bold">⚡ Servidores conectados</h3>
+          <Button size="sm" onClick={ir}>+ Adicionar novo</Button>
+        </div>
+        <table className="w-full text-left text-sm">
+          <thead className="text-zinc-400"><tr><th>Nome</th><th>DNS</th><th>Status</th></tr></thead>
+          <tbody>{srv.map(([n, d]) => <tr key={n} className="border-t border-white/10"><td className="py-2">{n}</td><td>{d}</td><td>🟢 Ativo</td></tr>)}</tbody>
+        </table>
+      </div>
+      <div className="space-y-1 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
+        <h3 className="font-bold">📈 Atividade recente</h3>
+        <p>✅ Servidor Daily3 atualizado — há 15 min</p>
+        <p>✅ 2 novos usuários hoje</p>
+        <p>⚠️ 1 link de filme com falha — verificar</p>
+      </div>
+    </div>
+  )
+}
+
 export default function Admin() {
   const [aba, setAba] = useState(0)
   const [msg, setMsg] = useState('')
@@ -185,16 +218,17 @@ export default function Admin() {
         <nav className="flex flex-wrap gap-2">
           {abas.map((a, i) => <button key={a} onClick={() => setAba(i)} className={`rounded-full px-4 py-1.5 text-sm ${aba === i ? 'bg-white text-black' : 'bg-white/10'}`}>{a}</button>)}
         </nav>
-        {aba === 0 && <Servidores />}
-        {aba === 1 && (
+        {aba === 0 && <Geral ir={() => setAba(1)} />}
+        {aba === 1 && <Servidores />}
+        {aba === 2 && (
           <div className="space-y-3">
             <p className="text-sm text-zinc-300">Última verificação: {new Date().toLocaleString('pt-BR')}<br />📡 Canais: 1.240 · 🎬 Filmes: 5.320 · 🎭 Séries: 860</p>
             <div className="flex flex-wrap gap-2">{['🔄 Verificar agora', '➕ Atualizar apenas novos', '🔗 Reparar links', '⏰ Atualização automática'].map(acao)}</div>
           </div>
         )}
-        {aba === 2 && <Usuarios />}
-        {aba === 3 && <p className="text-sm text-zinc-300">Acessos hoje: 342 · Online agora: 57 · Pico: 20h–23h<br />Dispositivos: celular 55% · TV 30% · computador 15%<br />⚠️ Alerta: Daily3 com resposta lenta</p>}
-        {aba === 4 && (
+        {aba === 3 && <Usuarios />}
+        {aba === 4 && <p className="text-sm text-zinc-300">Acessos hoje: 342 · Online agora: 57 · Pico: 20h–23h<br />Dispositivos: celular 55% · TV 30% · computador 15%<br />⚠️ Alerta: Daily3 com resposta lenta</p>}
+        {aba === 5 && (
           <div className="space-y-3">
             <Input placeholder="Mensagem" value={msg} onChange={(e) => setMsg(e.target.value)} className="border-white/10" />
             <div className="flex flex-wrap gap-2">
