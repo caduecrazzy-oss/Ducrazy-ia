@@ -24,7 +24,7 @@ export default function Login({ admin = false }: { admin?: boolean }) {
     setAviso('')
     try {
       if (modo === 'entrar') {
-        const t = await acesso<{ status: string }>({ acao: 'entrar', email, senha: pwd }, 'teste')
+        const t = await acesso<{ status: string }>({ acao: 'entrar', email, senha: pwd }, 'teste').catch(() => ({ status: 'nao' }))
         if (t.status === 'aprovado') {
           localStorage.setItem('dc_conta', email.trim().toLowerCase())
           setConta(email.trim().toLowerCase())
