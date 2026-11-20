@@ -9,13 +9,13 @@ export type Cli = {
 }
 const H = 3600000
 const SERV: Record<string, string> = { Principal: 'http://dgaura.top', 'Aura Top': 'http://dgaura.top', Renovai: 'http://renovai.sbs', Daily3: 'http://daily3.news' }
-const PLANOS: Record<string, number> = { 'Teste Grátis': 3, Mensal: 720, Trimestral: 2160, Anual: 8760 }
-const VALID: [string, number][] = [['3 horas', 3], ['1 dia', 24], ['30 dias', 720], ['90 dias', 2160], ['365 dias', 8760]]
+const PLANOS: Record<string, number> = { Mensal: 720, Trimestral: 2160, Anual: 8760 }
+const VALID: [string, number][] = [['1 dia', 24], ['30 dias', 720], ['90 dias', 2160], ['365 dias', 8760]]
 const agora = Date.now()
 export const iniciais: Cli[] = [
   { id: 1, nome: 'Cadu', email: 'cadu14carlos@gmail.com', tel: '', usuario: 'cadu14', senha: '963004', servidor: 'Principal', plano: 'Mensal', criado: agora - 18 * 24 * H, expira: agora + 12 * 24 * H + 4 * H, ativo: true, obs: '' },
-  { id: 2, nome: 'Maria', email: 'maria@email.com', tel: '', usuario: 'maria1', senha: '123456', servidor: 'Principal', plano: 'Teste Grátis', criado: agora - 1 * H, expira: agora + 2 * H + 15 * 60000, ativo: true, obs: '' },
-  { id: 3, nome: 'Ana', email: 'ana@email.com', tel: '', usuario: 'ana22', senha: '654321', servidor: 'Aura Top', plano: 'Teste Grátis', criado: agora - 2.5 * H, expira: agora + 30 * 60000, ativo: true, obs: '' },
+  { id: 2, nome: 'Maria', email: 'maria@email.com', tel: '', usuario: 'maria1', senha: '123456', servidor: 'Principal', plano: 'Mensal', criado: agora - 1 * H, expira: agora + 2 * H + 15 * 60000, ativo: true, obs: '' },
+  { id: 3, nome: 'Ana', email: 'ana@email.com', tel: '', usuario: 'ana22', senha: '654321', servidor: 'Aura Top', plano: 'Mensal', criado: agora - 2.5 * H, expira: agora + 30 * 60000, ativo: true, obs: '' },
   { id: 4, nome: 'João', email: 'joao@email.com', tel: '', usuario: 'joao9', senha: '111222', servidor: 'Renovai', plano: 'Mensal', criado: agora - 40 * 24 * H, expira: agora - 2 * 24 * H, ativo: true, obs: '' },
 ]
 
@@ -23,7 +23,6 @@ export function stat(c: Cli): { t: string; cor: string; aviso: boolean } {
   const r = c.expira - Date.now()
   if (!c.ativo) return { t: '🚫 Desativado', cor: 'text-zinc-400', aviso: false }
   if (r <= 0) return { t: '❌ Expirado', cor: 'text-red-400', aviso: false }
-  if (c.plano === 'Teste Grátis') return { t: '⏳ Teste Grátis', cor: 'text-yellow-300', aviso: r < H }
   return { t: '✅ Ativo', cor: 'text-green-400', aviso: r < H }
 }
 function resta(ms: number) {
@@ -37,18 +36,16 @@ const dh = (t: number) => new Date(t).toLocaleString('pt-BR', { dateStyle: 'shor
 const alea = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('')
 
 function zap(c: Cli) {
-  const v = c.plano === 'Teste Grátis' ? 'Válido por 3 horas.' : `Válido até ${data(c.expira)}.`
+  const v = `Válido até ${data(c.expira)}.`
   const txt = `Olá ${c.nome}! 🎉 Seu acesso ao Du Crazy Play já está pronto!\n\n🔗 Portal: ${SERV[c.servidor] || SERV.Principal}\n👤 Usuário: ${c.usuario}\n🔒 Senha: ${c.senha}\n\n${v} Bom divertimento! 📺`
   window.open(`https://wa.me/${c.tel.replace(/\D/g, '')}?text=${encodeURIComponent(txt)}`, '_blank')
 }
 
 export function Resumo({ l }: { l: Cli[] }) {
   const s = l.map(stat)
-  const hoje = new Date().setHours(23, 59, 59, 999)
-  const venceHoje = l.filter((c) => c.plano === 'Teste Grátis' && c.ativo && c.expira > Date.now() && c.expira <= hoje).length
-  const cards: [string, number][] = [['Total', l.length], ['Ativos', s.filter((x) => x.t === '✅ Ativo').length], ['Teste Grátis', s.filter((x) => x.t === '⏳ Teste Grátis').length], ['Expirados', s.filter((x) => x.t === '❌ Expirado').length], ['Testes que vencem hoje', venceHoje]]
+  const cards: [string, number][] = [['Total', l.length], ['Ativos', s.filter((x) => x.t === '✅ Ativo').length], ['Expirados', s.filter((x) => x.t === '❌ Expirado').length]]
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {cards.map(([n, v]) => <div key={n} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center"><div className="text-2xl font-bold">{v}</div><div className="text-xs text-zinc-400">{n}</div></div>)}
     </div>
   )
@@ -58,21 +55,18 @@ export function Relatorio({ l }: { l: Cli[] }) {
   const ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0)
   const dia = new Date().setHours(0, 0, 0, 0)
   const mes = l.filter((c) => c.criado >= ini.getTime())
-  const conv = l.filter((c) => c.plano !== 'Teste Grátis' && c.criado >= ini.getTime()).length
-  const testes = mes.filter((c) => c.plano === 'Teste Grátis').length + conv
-  const taxa = testes ? Math.round((conv / testes) * 100) : 0
   const caixa = (t: string, itens: [string, string | number][]) => (
     <div className="space-y-1 rounded-xl border border-white/10 bg-white/5 p-4 text-sm"><h3 className="font-bold">{t}</h3>{itens.map(([a, b]) => <p key={a} className="flex justify-between"><span>{a}</span><b>{b}</b></p>)}</div>
   )
   return (
     <div className="space-y-3">
-      {caixa('📊 Resumo do mês', [['Novos clientes este mês', mes.length], ['Testes convertidos', conv], ['Taxa de conversão', taxa + '%'], ['Clientes expirados', l.filter((c) => stat(c).t === '❌ Expirado').length]])}
+      {caixa('📊 Resumo do mês', [['Novos clientes este mês', mes.length], ['Clientes expirados', l.filter((c) => stat(c).t === '❌ Expirado').length]])}
       {caixa('📅 Cadastros por dia', [['Hoje', l.filter((c) => c.criado >= dia).length], ['Ontem', l.filter((c) => c.criado >= dia - 24 * H && c.criado < dia).length], ['Últimos 7 dias', l.filter((c) => c.criado >= dia - 6 * 24 * H).length]])}
       <p className="text-sm text-zinc-300">Acessos hoje: 342 · Online agora: 57 · Pico: 20h–23h<br />Dispositivos: celular 55% · TV 30% · computador 15%</p>
     </div>
   )
 }
-const vazio = { nome: '', email: '', tel: '', usuario: '', senha: '', servidor: 'Principal', plano: 'Teste Grátis', horas: 3, obs: '' }
+const vazio = { nome: '', email: '', tel: '', usuario: '', senha: '', servidor: 'Principal', plano: 'Mensal', horas: 720, obs: '' }
 type Ord = 'nome' | 'criado' | 'expira'
 
 export function Clientes({ l, setL }: { l: Cli[]; setL: (v: Cli[]) => void }) {
@@ -156,7 +150,7 @@ export function Clientes({ l, setL }: { l: Cli[]; setL: (v: Cli[]) => void }) {
           Até <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className="rounded-md border border-white/10 bg-zinc-900 p-1" />
         </div>
         <div className="flex flex-wrap gap-2">
-          {['Todos', 'Ativo', 'Teste', 'Expirado', 'Desativado'].map((x) => <button key={x} onClick={() => { setFil(x); setPg(0) }} className={`rounded-full px-3 py-1 ${fil === x ? 'bg-white text-black' : 'bg-white/10'}`}>{x}</button>)}
+          {['Todos', 'Ativo', 'Expirado', 'Desativado'].map((x) => <button key={x} onClick={() => { setFil(x); setPg(0) }} className={`rounded-full px-3 py-1 ${fil === x ? 'bg-white text-black' : 'bg-white/10'}`}>{x}</button>)}
         </div>
         <div className="flex flex-wrap items-center gap-2">Ordenar: {cab('nome', 'Nome')}{cab('criado', 'Criado')}{cab('expira', 'Validade')}</div>
       </div>
