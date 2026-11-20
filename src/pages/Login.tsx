@@ -23,6 +23,18 @@ export default function Login({ admin = false }: { admin?: boolean }) {
     setCarregando(true)
     setAviso('')
     try {
+      if (modo === 'entrar') {
+        const t = await acesso<{ status: string }>({ acao: 'entrar', email, senha: pwd }, 'teste')
+        if (t.status === 'aprovado') {
+          localStorage.setItem('dc_conta', email.trim().toLowerCase())
+          setConta(email.trim().toLowerCase())
+          return
+        }
+        if (t.status === 'expirado') {
+          setAviso('Seu teste gratuito de 3 horas expirou.')
+          return
+        }
+      }
       const r = await acesso<{ status: string }>({ acao: modo, email, senha: pwd })
       if (r.status === 'aprovado') {
         localStorage.setItem('dc_conta', email)
@@ -73,8 +85,8 @@ export default function Login({ admin = false }: { admin?: boolean }) {
         >
           <h1 className="text-center text-2xl font-bold">🎬 DU CRAZY PLAY</h1>
           <div className="space-y-2">
-            <Label htmlFor="em">📧 Gmail</Label>
-            <Input id="em" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@gmail.com" className="border-white/10" />
+            <Label htmlFor="em">📧 Gmail ou usuário de teste</Label>
+            <Input id="em" type="text" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@gmail.com" className="border-white/10" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="pw">🔑 Senha</Label>
