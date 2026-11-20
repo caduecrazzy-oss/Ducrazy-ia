@@ -14,7 +14,7 @@ export default function Login({ admin = false }: { admin?: boolean }) {
   const [usuario, setUsuario] = useState('')
   const [senha, setSenha] = useState('')
   const [carregando, setCarregando] = useState(false)
-  const [conta, setConta] = useState(localStorage.getItem('dc_conta') || '')
+  const [, setConta] = useState(localStorage.getItem('dc_conta') || '')
   const [email, setEmail] = useState('')
   const [pwd, setPwd] = useState('')
   const [aviso, setAviso] = useState('')
@@ -66,7 +66,7 @@ export default function Login({ admin = false }: { admin?: boolean }) {
     }
   }
 
-  if (!admin && !conta) {
+  if (false as boolean) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-zinc-950 px-6 text-zinc-50">
         <form
@@ -103,7 +103,7 @@ export default function Login({ admin = false }: { admin?: boolean }) {
         <h1 className="text-center text-2xl font-bold">🎬 DU CRAZY PLAY{admin && ' · Admin'}</h1>
         {!admin && (
           <div className="space-y-2">
-            <Label htmlFor="srv">🌐 Servidor</Label>
+            <Label htmlFor="srv">🌐 URL / Portal</Label>
             <Input id="srv" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://servidor:porta" className="border-white/10" />
           </div>
         )}
