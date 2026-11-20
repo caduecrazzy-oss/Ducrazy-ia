@@ -1,7 +1,7 @@
-const URL_ACESSO = 'https://lnshksoszkiifrqzjmkt.supabase.co/functions/v1/acesso'
+const BASE = 'https://lnshksoszkiifrqzjmkt.supabase.co/functions/v1/'
 
-export async function acesso<T = Record<string, unknown>>(corpo: Record<string, unknown>): Promise<T> {
-  const r = await fetch(URL_ACESSO, {
+export async function acesso<T = Record<string, unknown>>(corpo: Record<string, unknown>, fn = 'acesso'): Promise<T> {
+  const r = await fetch(BASE + fn, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(corpo),
