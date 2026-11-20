@@ -51,6 +51,27 @@ export default function Principal() {
   useEffect(() => { localStorage.setItem('dc_quando', JSON.stringify(quando)) }, [quando])
   useEffect(() => { if (vref.current) vref.current.playbackRate = vel }, [vel, player])
   useEffect(() => { localStorage.setItem('dc_prog', JSON.stringify(prog)) }, [prog])
+  const [fTipo, setFTipo] = useState('')
+  const [fAno, setFAno] = useState('')
+  const [fQual, setFQual] = useState('')
+  const [legs, setLegs] = useState<string[]>([])
+  const [auds, setAuds] = useState<string[]>([])
+  const [legSel, setLegSel] = useState(-1)
+  const [audSel, setAudSel] = useState(0)
+  const caixa = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!player) return
+    const pausar = () => { if (document.hidden) vref.current?.pause() }
+    const mq = window.matchMedia('(orientation: landscape)')
+    const girar = () => {
+      if (mq.matches && window.innerWidth < 1024) caixa.current?.requestFullscreen?.().catch(() => undefined)
+      else if (document.fullscreenElement) document.exitFullscreen().catch(() => undefined)
+    }
+    document.addEventListener('visibilitychange', pausar)
+    window.addEventListener('pagehide', pausar)
+    mq.addEventListener('change', girar)
+    return () => { document.removeEventListener('visibilitychange', pausar); window.removeEventListener('pagehide', pausar); mq.removeEventListener('change', girar) }
+  }, [player])
   useEffect(() => { if (!dados) nav('/entrar') }, [dados, nav])
   useEffect(() => { localStorage.setItem('dc_favs', JSON.stringify(favs)) }, [favs])
   useEffect(() => { localStorage.setItem('dc_hist', JSON.stringify(hist)) }, [hist])
@@ -61,20 +82,22 @@ export default function Principal() {
   const base = global ? todos : aba === 'fav' ? todos.filter((i) => favs.includes(i.id)) : aba === 'hist' ? hist : aba === 'tv' || aba === 'filmes' || aba === 'series' ? dados[aba] : []
   const especiais = aba === 'series' && !global ? ['🔥 Populares', '🆕 Novos Episódios', '📺 Minhas Séries', '⭐ Favoritos'] : []
   const cats = [...especiais, ...(Array.from(new Set(base.map((i) => i.cat).filter(Boolean))) as string[])]
+  function tipo(i: Item) { return i.id.split('-')[0] }
   const vista = (i: Item) => hist.some((h) => h.id === i.id)
   const okCat = (i: Item) => !cat || (cat === '🔥 Populares' ? (i.nota ?? 0) >= 4 : cat === '🆕 Novos Episódios' ? !vista(i) : cat === '📺 Minhas Séries' ? vista(i) : cat === '⭐ Favoritos' ? favs.includes(i.id) : i.cat === cat)
   const lista = base
-    .filter((i) => okCat(i) && (!bons || (i.nota ?? 0) >= 4) && i.nome.toLowerCase().includes(busca.toLowerCase()))
+    .filter((i) => okCat(i) && (!fTipo || tipo(i) === fTipo) && (!fAno || String(i.ano) === fAno) && (!fQual || String(i.qualidade ?? '').toUpperCase() === fQual) && (!bons || (i.nota ?? 0) >= 4) && i.nome.toLowerCase().includes(busca.toLowerCase()))
     .sort((a, b) => (aba === 'hist' && !global ? 0 : ordem === 'nota' ? (b.nota ?? 0) - (a.nota ?? 0) : a.nome.localeCompare(b.nome)))
     .slice(0, 300)
+  const anos = Array.from(new Set(base.map((i) => i.ano).filter(Boolean).map(String))).sort().reverse().slice(0, 60)
+  const quals = Array.from(new Set(base.map((i) => String(i.qualidade ?? '').toUpperCase()).filter(Boolean)))
   const fav = (id: string) => setFavs((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]))
-  const tipo = (i: Item) => i.id.split('-')[0]
 
   const tocar = (i: Item, nome = i.nome, url = i.url) => {
     if (!url) return toast.error('Sem link de vídeo')
     setHist((h) => [i, ...h.filter((x) => x.id !== i.id)].slice(0, 60))
     setQuando((q) => ({ ...q, [i.id]: Date.now() }))
-    setVel(1); setTrava(false)
+    setVel(1); setTrava(false); setLegs([]); setAuds([]); setLegSel(-1); setAudSel(0)
     setPlayer({ nome, url })
   }
   const abrir = (i: Item) => { if (tipo(i) === 'tv') tocar(i); else { setTemp(0); setMais(false); setDet(i) } }
@@ -138,8 +161,18 @@ export default function Principal() {
               <option value="az">A–Z</option><option value="nota">Melhor avaliação</option>
             </select>
             <label className="flex items-center gap-1 text-zinc-300"><input type="checkbox" checked={bons} onChange={(e) => setBons(e.target.checked)} /> 4★ ou mais</label>
+            {aba !== 'tv' && anos.length > 0 && <select value={fAno} onChange={(e) => setFAno(e.target.value)} className="rounded bg-zinc-800 px-2 py-1"><option value="">Ano</option>{anos.map((a) => <option key={a}>{a}</option>)}</select>}
+            {quals.length > 0 && <select value={fQual} onChange={(e) => setFQual(e.target.value)} className="rounded bg-zinc-800 px-2 py-1"><option value="">Qualidade</option>{quals.map((a) => <option key={a}>{a}</option>)}</select>}
+            {cats.length > 0 && <select value={cat} onChange={(e) => setCat(e.target.value)} className="rounded bg-zinc-800 px-2 py-1"><option value="">Gênero</option>{cats.slice(0, 80).map((a) => <option key={a}>{a}</option>)}</select>}
             {global && <span className="text-[#a070ff]">Resultados em todas as seções</span>}
             {aba === 'hist' && hist.length > 0 && <button onClick={() => setHist([])} className="ml-auto text-zinc-400 underline">Limpar histórico</button>}
+          </div>
+        )}
+        {global && (
+          <div className="mb-3 flex gap-2 text-xs">
+            {([['', 'Tudo'], ['tv', 'Canais'], ['filmes', 'Filmes'], ['series', 'Séries']] as const).map(([t, n]) => (
+              <button key={t} onClick={() => setFTipo(t)} className={`rounded-full px-3 py-1 ${fTipo === t ? 'bg-[#8050ff]' : 'bg-white/10 text-zinc-300'}`}>{n} ({base.filter((i) => (!t || tipo(i) === t) && i.nome.toLowerCase().includes(busca.toLowerCase())).length})</button>
+            ))}
           </div>
         )}
         {aba !== 'cfg' && cats.length > 0 && (
@@ -171,7 +204,7 @@ export default function Principal() {
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-white/10 bg-zinc-950">
         {abas.map((a) => (
-          <button key={a.id} onClick={() => { setAba(a.id); setCat(''); setBusca('') }} className={`flex flex-1 flex-col items-center py-2 text-[10px] ${aba === a.id ? 'text-[#8050ff]' : 'text-zinc-400'}`}>
+          <button key={a.id} onClick={() => { setAba(a.id); setCat(''); setBusca(''); setFTipo(''); setFAno(''); setFQual('') }} className={`flex flex-1 flex-col items-center py-2 text-[10px] ${aba === a.id ? 'text-[#8050ff]' : 'text-zinc-400'}`}>
             <span className="text-lg">{a.ic}</span>{a.nome}
           </button>
         ))}
@@ -229,16 +262,24 @@ export default function Principal() {
         </div>
       )}
       {player && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black">
+        <div ref={caixa} className="fixed inset-0 z-50 flex flex-col bg-black">
           <div className="flex items-center justify-between p-4">
             <span className="truncate font-semibold">{player.nome}</span>
             <button aria-label="Fechar" onClick={() => setPlayer(null)}><X /></button>
           </div>
-          <video ref={vref} src={player.url} controls autoPlay playsInline className={`min-h-0 flex-1 bg-black ${trava ? 'pointer-events-none' : ''}`} onTimeUpdate={(ev) => { const v = ev.currentTarget; if (v.duration && Math.floor(v.currentTime) % 5 === 0) setProg((p) => (p[player.url]?.t === Math.floor(v.currentTime) ? p : { ...p, [player.url]: { t: Math.floor(v.currentTime), d: Math.floor(v.duration) } })) }} onError={() => toast.error('Este conteúdo está temporariamente indisponível.')} />
+          <video ref={vref} src={player.url} controls autoPlay playsInline className={`min-h-0 flex-1 bg-black ${trava ? 'pointer-events-none' : ''}`} onTimeUpdate={(ev) => { const v = ev.currentTarget; if (v.duration && Math.floor(v.currentTime) % 5 === 0) setProg((p) => (p[player.url]?.t === Math.floor(v.currentTime) ? p : { ...p, [player.url]: { t: Math.floor(v.currentTime), d: Math.floor(v.duration) } })) }} onLoadedMetadata={(ev) => {
+            const v = ev.currentTarget; const p = prog[player.url]
+            if (p && p.t > 5 && p.t < p.d * 0.9 && Number.isFinite(v.duration)) { v.currentTime = p.t; toast.message(`Continuando de ${Math.floor(p.t / 60)}:${String(p.t % 60).padStart(2, '0')}`) }
+            const al = (v as unknown as { audioTracks?: { length: number; [k: number]: { label: string; language: string; enabled: boolean } } }).audioTracks
+            setAuds(al ? Array.from({ length: al.length }, (_, k) => al[k].label || al[k].language || `Faixa ${k + 1}`) : [])
+            setLegs(Array.from(v.textTracks).map((t, k) => t.label || t.language || `Legenda ${k + 1}`))
+          }} onError={() => toast.error('Este conteúdo está temporariamente indisponível.')} />
           <div className="flex items-center justify-between gap-3 p-3 text-sm">
             <label className="flex items-center gap-1">Velocidade
               <select value={vel} onChange={(e) => setVel(Number(e.target.value))} className="rounded bg-zinc-800 px-2 py-1">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((v) => <option key={v} value={v}>{v}x</option>)}</select>
             </label>
+            {auds.length > 1 && <select value={audSel} onChange={(e) => { const k = Number(e.target.value); setAudSel(k); const al = (vref.current as unknown as { audioTracks: { length: number; [k: number]: { enabled: boolean } } }).audioTracks; for (let n = 0; n < al.length; n++) al[n].enabled = n === k }} className="rounded bg-zinc-800 px-2 py-1">{auds.map((a, k) => <option key={k} value={k}>🔊 {a}</option>)}</select>}
+            {legs.length > 0 && <select value={legSel} onChange={(e) => { const k = Number(e.target.value); setLegSel(k); Array.from(vref.current?.textTracks ?? []).forEach((t, n) => { t.mode = n === k ? 'showing' : 'disabled' }) }} className="rounded bg-zinc-800 px-2 py-1"><option value={-1}>💬 Sem legenda</option>{legs.map((a, k) => <option key={k} value={k}>💬 {a}</option>)}</select>}
             <button onClick={() => setTrava(!trava)} className="text-zinc-300">{trava ? '🔓 Desbloquear toques' : '🔒 Bloquear toques'}</button>
             <button onClick={() => setPlayer(null)} className="text-[#a070ff]">↺ Voltar</button>
           </div>
