@@ -8,14 +8,13 @@ export default function Publica() {
       <h1 className="text-4xl font-extrabold sm:text-6xl">DU CRAZY PLAY</h1>
       <p className="mt-4 max-w-md text-zinc-300">Sua plataforma de entretenimento — direto do navegador, sem instalar nada.</p>
       <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm">
-        {['📡 TV ao-vivo', '🎬 Filmes', '🎭 Séries', '⏱️ Teste Grátis'].map((t) => (
+        {['📡 TV ao-vivo', '🎬 Filmes', '🎭 Séries'].map((t) => (
           <span key={t} className="rounded-full bg-white/10 px-4 py-1.5">{t}</span>
         ))}
       </div>
       <ul className="mt-8 space-y-2 text-zinc-300">
         <li>✅ Acesse pelo celular, computador ou Smart TV</li>
         <li>💬 WhatsApp: (11) 9 3948-4318</li>
-        <li>⏱️ Teste grátis de 3 horas disponível para novas contas</li>
       </ul>
       <Button asChild size="lg" className="mt-8"><Link to="/entrar">Entrar</Link></Button>
     </div>
