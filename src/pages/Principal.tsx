@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, Loader2, RefreshCw, Search, X } from 'lucide-react'
+import { Heart, Loader2, Play, RefreshCw, Search, Star, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -11,30 +11,59 @@ const abas = [
   { id: 'filmes', nome: 'Filmes', ic: '🎬' },
   { id: 'series', nome: 'Séries', ic: '🎭' },
   { id: 'fav', nome: 'Favoritos', ic: '⭐' },
+  { id: 'hist', nome: 'Histórico', ic: '🕘' },
   { id: 'cfg', nome: 'Config.', ic: '⚙️' },
 ]
+
+const ler = <T,>(k: string, d: T): T => { try { return JSON.parse(localStorage.getItem(k) ?? 'null') ?? d } catch { return d } }
+
+function Estrelas({ n }: { n?: number }) {
+  if (!n) return <span className="text-[10px] text-zinc-500">Sem nota</span>
+  return (
+    <span className="flex items-center gap-0.5" aria-label={`Nota ${n.toFixed(1)} de 5`}>
+      {[1, 2, 3, 4, 5].map((s) => <Star key={s} className={`size-3 ${n >= s - 0.5 ? 'fill-[#8050ff] text-[#8050ff]' : 'text-zinc-600'}`} />)}
+      <span className="ml-1 text-[10px] text-zinc-400">{n.toFixed(1)}</span>
+    </span>
+  )
+}
 
 export default function Principal() {
   const nav = useNavigate()
   const [dados, setDados] = useState(lerDados())
   const [aba, setAba] = useState('tv')
   const [busca, setBusca] = useState('')
-  const [player, setPlayer] = useState<Item | null>(null)
+  const [player, setPlayer] = useState<{ nome: string; url: string } | null>(null)
+  const [det, setDet] = useState<Item | null>(null)
+  const [temp, setTemp] = useState(0)
   const [carregando, setCarregando] = useState(false)
   const [cat, setCat] = useState('')
-  const [qual, setQual] = useState('Auto')
-  const [leg, setLeg] = useState('Desligada')
-  const [favs, setFavs] = useState<string[]>(() => JSON.parse(localStorage.getItem('dc_favs') ?? '[]'))
+  const [ordem, setOrdem] = useState('az')
+  const [bons, setBons] = useState(false)
+  const [favs, setFavs] = useState<string[]>(() => ler('dc_favs', []))
+  const [hist, setHist] = useState<Item[]>(() => ler('dc_hist', []))
 
   useEffect(() => { if (!dados) nav('/entrar') }, [dados, nav])
   useEffect(() => { localStorage.setItem('dc_favs', JSON.stringify(favs)) }, [favs])
+  useEffect(() => { localStorage.setItem('dc_hist', JSON.stringify(hist)) }, [hist])
 
   if (!dados) return null
   const todos = [...dados.tv, ...dados.filmes, ...dados.series]
-  const base = aba === 'fav' ? todos.filter((i) => favs.includes(i.id)) : aba === 'tv' || aba === 'filmes' || aba === 'series' ? dados[aba] : []
+  const global = busca.trim().length > 0 && aba !== 'cfg'
+  const base = global ? todos : aba === 'fav' ? todos.filter((i) => favs.includes(i.id)) : aba === 'hist' ? hist : aba === 'tv' || aba === 'filmes' || aba === 'series' ? dados[aba] : []
   const cats = Array.from(new Set(base.map((i) => i.cat).filter(Boolean))) as string[]
-  const lista = base.filter((i) => (!cat || i.cat === cat) && i.nome.toLowerCase().includes(busca.toLowerCase())).slice(0, 300)
+  const lista = base
+    .filter((i) => (!cat || i.cat === cat) && (!bons || (i.nota ?? 0) >= 4) && i.nome.toLowerCase().includes(busca.toLowerCase()))
+    .sort((a, b) => (aba === 'hist' && !global ? 0 : ordem === 'nota' ? (b.nota ?? 0) - (a.nota ?? 0) : a.nome.localeCompare(b.nome)))
+    .slice(0, 300)
   const fav = (id: string) => setFavs((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]))
+  const tipo = (i: Item) => i.id.split('-')[0]
+
+  const tocar = (i: Item, nome = i.nome, url = i.url) => {
+    if (!url) return toast.error('Sem link de vídeo')
+    setHist((h) => [i, ...h.filter((x) => x.id !== i.id)].slice(0, 60))
+    setPlayer({ nome, url })
+  }
+  const abrir = (i: Item) => { if (tipo(i) === 'tv') tocar(i); else { setTemp(0); setDet(i) } }
 
   const atualizar = async () => {
     setCarregando(true)
@@ -50,24 +79,35 @@ export default function Principal() {
     } finally { setCarregando(false) }
   }
   const sair = () => { localStorage.removeItem('dc_cred'); localStorage.removeItem('dc_dados'); nav('/entrar') }
+  const vazio = todos.length === 0
 
   return (
     <div className="min-h-svh bg-zinc-950 pb-20 text-zinc-50">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-white/10 bg-zinc-950/95 px-4 py-3">
-        <span className="font-bold text-[#8050ff]">🎬 DU CRAZY PLAY</span>
+        <span className="hidden font-bold text-[#8050ff] sm:block">🎬 DU CRAZY PLAY</span>
         {aba !== 'cfg' && (
           <div className="relative ml-auto w-full max-w-xs">
             <Search className="absolute left-2 top-2 size-4 text-zinc-500" />
-            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar" className="h-8 border-white/10 pl-8" />
+            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Busca global: canais, filmes, séries" className="h-8 border-white/10 pl-8" />
           </div>
         )}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-4">
         {carregando && <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#8050ff]" /></div>}
+        {aba !== 'cfg' && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+            <select value={ordem} onChange={(e) => setOrdem(e.target.value)} className="rounded bg-zinc-800 px-2 py-1">
+              <option value="az">A–Z</option><option value="nota">Melhor avaliação</option>
+            </select>
+            <label className="flex items-center gap-1 text-zinc-300"><input type="checkbox" checked={bons} onChange={(e) => setBons(e.target.checked)} /> 4★ ou mais</label>
+            {global && <span className="text-[#a070ff]">Resultados em todas as seções</span>}
+            {aba === 'hist' && hist.length > 0 && <button onClick={() => setHist([])} className="ml-auto text-zinc-400 underline">Limpar histórico</button>}
+          </div>
+        )}
         {aba !== 'cfg' && cats.length > 0 && (
           <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
             {['', ...cats.slice(0, 40)].map((c) => (
-              <button key={c || 'todas'} onClick={() => setCat(c)} className={`shrink-0 rounded-full px-3 py-1 text-xs ${cat === c ? 'bg-[#a070ff] text-white' : 'bg-white/10 text-zinc-300'}`}>{c || 'Todas'}</button>
+              <button key={c || 'todas'} onClick={() => setCat(c)} className={`shrink-0 rounded-full px-3 py-1 text-xs ${cat === c ? 'bg-[#8050ff] text-white' : 'bg-white/10 text-zinc-300'}`}>{c || 'Todas'}</button>
             ))}
           </div>
         )}
@@ -78,41 +118,86 @@ export default function Principal() {
             <Button onClick={sair} variant="destructive" className="w-full">Sair</Button>
           </div>
         ) : lista.length === 0 ? (
-          <p className="py-10 text-center text-zinc-400">{aba === 'fav' ? 'Nenhum favorito ainda.' : 'Nada encontrado.'}</p>
+          <p className="py-10 text-center text-zinc-400">{vazio ? 'O servidor não devolveu conteúdo. Vá em Config. e atualize a lista.' : aba === 'fav' ? 'Nenhum favorito ainda.' : aba === 'hist' ? 'Nada assistido ainda.' : 'Nada encontrado.'}</p>
         ) : (
-          <div className={aba === 'tv' ? 'grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6' : 'grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-7'}>
-            {lista.map((i) => (
-              <div key={i.id} className="relative">
-                <button onClick={() => (i.url ? setPlayer(i) : toast.error('Sem link de vídeo'))} className={`flex w-full items-end overflow-hidden rounded-lg bg-gradient-to-br from-[#8050ff] to-indigo-900 p-2 text-left text-xs font-semibold ${aba === 'tv' ? 'aspect-video' : 'aspect-[2/3]'}`} style={i.img ? { backgroundImage: `linear-gradient(transparent 40%, #000c), url(${i.img})`, backgroundSize: 'cover' } : undefined}>
-                  {i.nome}
-                </button>
-                <button aria-label="Favoritar" onClick={() => fav(i.id)} className="absolute right-1 top-1 rounded-full bg-black/60 p-1">
-                  <Heart className={`size-4 ${favs.includes(i.id) ? 'fill-[#8050ff] text-[#8050ff]' : ''}`} />
-                </button>
-              </div>
-            ))}
+          <div className={aba === 'tv' && !global ? 'grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6' : 'grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-7'}>
+            {lista.map((i) => {
+              const tv = tipo(i) === 'tv'
+              return (
+                <div key={i.id} className="group relative flex flex-col gap-1">
+                  <button onClick={() => abrir(i)} className={`flex w-full items-end overflow-hidden rounded-lg bg-gradient-to-br from-[#8050ff] to-indigo-950 p-2 text-left text-xs font-semibold ring-[#8050ff] transition hover:ring-2 ${tv ? 'aspect-video' : 'aspect-[2/3]'}`} style={i.img ? { backgroundImage: `linear-gradient(transparent 40%, #000c), url(${i.img})`, backgroundSize: 'cover' } : undefined}>
+                    <span className="line-clamp-2">{i.nome}</span>
+                  </button>
+                  <button aria-label="Favoritar" onClick={() => fav(i.id)} className="absolute right-1 top-1 rounded-full bg-black/60 p-1">
+                    <Heart className={`size-4 ${favs.includes(i.id) ? 'fill-[#8050ff] text-[#8050ff]' : ''}`} />
+                  </button>
+                  <Estrelas n={i.nota} />
+                  <Button size="sm" onClick={() => abrir(i)} className="h-7 bg-[#8050ff] text-xs hover:bg-[#6a3de8]"><Play className="size-3" />{tv ? 'Assistir' : 'Detalhes'}</Button>
+                </div>
+              )
+            })}
           </div>
         )}
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-white/10 bg-zinc-950">
         {abas.map((a) => (
-          <button key={a.id} onClick={() => { setAba(a.id); setCat('') }} className={`flex flex-1 flex-col items-center py-2 text-[11px] ${aba === a.id ? 'text-[#8050ff]' : 'text-zinc-400'}`}>
+          <button key={a.id} onClick={() => { setAba(a.id); setCat(''); setBusca('') }} className={`flex flex-1 flex-col items-center py-2 text-[10px] ${aba === a.id ? 'text-[#8050ff]' : 'text-zinc-400'}`}>
             <span className="text-lg">{a.ic}</span>{a.nome}
           </button>
         ))}
       </nav>
+      {det && (
+        <div className="fixed inset-0 z-40 overflow-y-auto bg-zinc-950/95 p-4">
+          <div className="mx-auto max-w-3xl">
+            <button aria-label="Fechar" onClick={() => setDet(null)} className="mb-3 ml-auto block"><X /></button>
+            <div className="flex gap-4">
+              <div className="aspect-[2/3] w-32 shrink-0 rounded-lg bg-gradient-to-br from-[#8050ff] to-indigo-950 sm:w-44" style={det.img ? { backgroundImage: `url(${det.img})`, backgroundSize: 'cover' } : undefined} />
+              <div className="space-y-2 text-sm">
+                <h2 className="text-xl font-bold">{det.nome}</h2>
+                <Estrelas n={det.nota} />
+                <div className="flex flex-wrap gap-2 text-xs text-zinc-300">
+                  {[det.ano, det.duracao, det.qualidade, det.cat].filter(Boolean).map((t) => <span key={t} className="rounded bg-white/10 px-2 py-0.5">{t}</span>)}
+                </div>
+                <p className="text-zinc-300"><b>Sinopse:</b> {det.sinopse ?? 'Não informada pelo servidor.'}</p>
+                <p className="text-zinc-300"><b>Elenco:</b> {det.elenco ?? 'Não informado.'}</p>
+                <div className="flex gap-2 pt-1">
+                  {tipo(det) === 'filmes' && <Button onClick={() => tocar(det)} className="bg-[#8050ff] hover:bg-[#6a3de8]"><Play /> Assistir</Button>}
+                  <Button variant="secondary" onClick={() => fav(det.id)}><Heart className={favs.includes(det.id) ? 'fill-[#8050ff] text-[#8050ff]' : ''} />{favs.includes(det.id) ? 'Favoritado' : 'Favoritar'}</Button>
+                </div>
+              </div>
+            </div>
+            {tipo(det) === 'series' && (
+              <div className="mt-5">
+                {det.temps?.length ? (
+                  <>
+                    <div className="mb-2 flex gap-2 overflow-x-auto">
+                      {det.temps.map((t, k) => <button key={k} onClick={() => setTemp(k)} className={`shrink-0 rounded-full px-3 py-1 text-xs ${temp === k ? 'bg-[#8050ff]' : 'bg-white/10 text-zinc-300'}`}>Temporada {t.n}</button>)}
+                    </div>
+                    <ul className="space-y-1">
+                      {det.temps[temp]?.eps.map((e, j) => (
+                        <li key={e.id + j} className="flex items-center justify-between rounded bg-white/5 px-3 py-2 text-sm">
+                          <span>{j + 1}. {e.nome}</span>
+                          <Button size="sm" onClick={() => tocar(det, `${det.nome} — ${e.nome}`, e.url)} className="h-7 bg-[#8050ff] hover:bg-[#6a3de8]"><Play className="size-3" /> Assistir</Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : det.url ? (
+                  <Button onClick={() => tocar(det)} className="bg-[#8050ff] hover:bg-[#6a3de8]"><Play /> Assistir</Button>
+                ) : <p className="text-sm text-zinc-400">O servidor não enviou temporadas e episódios desta série.</p>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {player && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black">
           <div className="flex items-center justify-between p-4">
             <span className="truncate font-semibold">{player.nome}</span>
             <button aria-label="Fechar" onClick={() => setPlayer(null)}><X /></button>
           </div>
-          <video src={player.url} controls autoPlay playsInline className="min-h-0 flex-1 bg-black" onError={() => toast.error('Este canal está temporariamente indisponível.')} />
-          <div className="flex flex-wrap items-center gap-4 p-3 text-sm text-zinc-300">
-            <label>Qualidade: <select value={qual} onChange={(e) => { setQual(e.target.value); toast.info('Qualidade: ' + e.target.value) }} className="rounded bg-zinc-800 px-2 py-1">{['Auto', '360p', '720p', '1080p'].map((q) => <option key={q}>{q}</option>)}</select></label>
-            <label>Legenda: <select value={leg} onChange={(e) => setLeg(e.target.value)} className="rounded bg-zinc-800 px-2 py-1">{['Desligada', 'Disponível'].map((q) => <option key={q}>{q}</option>)}</select></label>
-            <button onClick={() => setPlayer(null)} className="ml-auto text-[#a070ff]">↺ Voltar para lista</button>
-          </div>
+          <video src={player.url} controls autoPlay playsInline className="min-h-0 flex-1 bg-black" onError={() => toast.error('Este conteúdo está temporariamente indisponível.')} />
+          <div className="p-3 text-right text-sm"><button onClick={() => setPlayer(null)} className="text-[#a070ff]">↺ Voltar</button></div>
         </div>
       )}
     </div>
